@@ -1,0 +1,135 @@
+# Veil's requirement registry: the goals of track T8 of kiln's critical path (kiln plan
+# 01a157fe1045705180b43d9dcb442a2e), each acceptance criterion (AC-T8.n.k) and test (T-T8.n.k) with its ID,
+# from the plan's version below on 2026-10-20. Code comments, commits, tests and benchmarks cite these IDs;
+# kiln's citation gate (CP-T6.6) reads them from kiln's vendored copy. Veil's own IDs join them as
+# its design names them.
+
+plan = "01a157fe1045705180b43d9dcb442a2e"
+plan_version = 2
+track = "CP-T8"
+
+[[goal]]
+id = "CP-T8.1"
+title = "Veil set up; its core as kiln's secrets backend"
+criteria = [
+  { id = "AC-T8.1.1", text = "Usable now: kiln's deploy and CI secrets are sealed under a platform-sealed root, with every read audited in a hash chain, in a change request that passes the gate; Veil's repository has its CLAUDE.md, STATUS.md and gate" },
+  { id = "AC-T8.1.2", text = "plaintext secret bytes found by a scan of kiln's data directory and backups is exactly 0, measured by a test planting known values and scanning" },
+  { id = "AC-T8.1.3", text = "GetSecretValue p99, local is at most 5 ms, measured by bench veil_get on adacachy" },
+  { id = "AC-T8.1.4", text = "versions whose value changed in the migration is exactly 0, measured by a digest comparison of every version" },
+  { id = "AC-T8.1.5", text = "reads failed during a root key rotation under load is exactly 0, measured by a rotation drill" },
+]
+tests = [
+  { id = "T-T8.1.1", text = "Crash at every write instruction of a put and of a rotation, then recovery — passes when the committed versions read back exactly and no key is lost" },
+  { id = "T-T8.1.2", text = "A flipped byte in a sealed version or the audit chain — passes when it is detected on read, never returned" },
+]
+
+[[goal]]
+id = "CP-T8.2"
+title = "The AWS Secrets Manager–compatible API"
+criteria = [
+  { id = "AC-T8.2.1", text = "Usable now: any AWS SDK or the AWS CLI reads and writes kiln's secrets through Veil, in a change request that passes the gate" },
+  { id = "AC-T8.2.2", text = "The AWS CLI, boto3 and the AWS SDKs for Rust, Go and JavaScript pass a conformance suite of every operation, checked against AWS's documented examples and errors" },
+  { id = "AC-T8.2.3", text = "GetSecretValue through the API on a LAN, p99 is at most 3 ms, measured by a bench through boto3" },
+]
+tests = [
+  { id = "T-T8.2.1", text = "A request with a bad signature, a stale date or a replayed nonce — passes when it is refused as AWS refuses it" },
+]
+
+[[goal]]
+id = "CP-T8.3"
+title = "Just-in-time injection for agents"
+criteria = [
+  { id = "AC-T8.3.1", text = "Usable now: kiln's harnesses run with model credentials injected at egress, their environment and files holding placeholders only, in a change request that passes the gate" },
+  { id = "AC-T8.3.2", text = "added latency per model API request, p99 is at most 2 ms, measured by bench inject_path" },
+  { id = "AC-T8.3.3", text = "real credential bytes in a harness's environment and files during a session is exactly 0, measured by a scan for planted values" },
+  { id = "AC-T8.3.4", text = "Claude Code, Codex, Gemini and Antigravity each work with API keys and with their sign-ins through the injector" },
+]
+tests = [
+  { id = "T-T8.3.1", text = "A request to a host the grant doesn't name — passes when it goes out without any credential" },
+]
+
+[[goal]]
+id = "CP-T8.4"
+title = "Dynamic secrets, leases and generation"
+criteria = [
+  { id = "AC-T8.4.1", text = "Usable now: CI legs and agents get credentials that expire with them, for every integration that allows it, in a change request that passes the gate" },
+  { id = "AC-T8.4.2", text = "time from a workload's end to its leases' revocation, p99 is at most 5 s, measured by a test with Hex ending workloads" },
+  { id = "AC-T8.4.3", text = "credentials outliving their workload over 10,000 seeds is exactly 0, measured by kiln-sim with crashes of Veil and the workload" },
+]
+tests = [
+  { id = "T-T8.4.1", text = "A revoked database user — passes when it can no longer connect, checked against a real Postgres" },
+]
+
+[[goal]]
+id = "CP-T8.5"
+title = "Rotation"
+criteria = [
+  { id = "AC-T8.5.1", text = "Usable now: kiln's own credentials rotate on schedule with no failed request, in a change request that passes the gate" },
+  { id = "AC-T8.5.2", text = "requests failed during a rotation under load is exactly 0, measured by a rotation drill at 1,000 requests/s" },
+  { id = "AC-T8.5.3", text = "A rotation that fails its test step rolls back to the current version and says why" },
+]
+tests = [
+  { id = "T-T8.5.1", text = "A crash at each rotation step, then recovery — passes when the rotation finishes or rolls back, never leaves two current versions" },
+]
+
+[[goal]]
+id = "CP-T8.6"
+title = "Policies, segmentation and approvals"
+criteria = [
+  { id = "AC-T8.6.1", text = "Usable now: agents read only what their grants allow, and a sensitive read waits for the person's approval in the conversation, in a change request that passes the gate" },
+  { id = "AC-T8.6.2", text = "decisions differing from a reference evaluator on generated policies and requests is exactly 0, measured by a property test" },
+  { id = "AC-T8.6.3", text = "added latency of a policy check, p99 is at most 50 µs, measured by a bench of the check" },
+]
+tests = [
+  { id = "T-T8.6.1", text = "An agent asks for a production credential — passes when the person sees who, what and why, and the read happens only on approval" },
+]
+
+[[goal]]
+id = "CP-T8.7"
+title = "Leak prevention"
+criteria = [
+  { id = "AC-T8.7.1", text = "Usable now: no secret value appears in anything kiln keeps or shows, in a change request that passes the gate" },
+  { id = "AC-T8.7.2", text = "planted secret values (raw, base64, URL and hex) left in stored transcripts, logs and CI output is exactly 0, measured by a test planting values in each" },
+  { id = "AC-T8.7.3", text = "false redactions per 10,000 lines of a real corpus is at most 1, measured by a corpus of kiln transcripts" },
+  { id = "AC-T8.7.4", text = "added latency per line of output is at most 5 µs, measured by a bench of the redactor" },
+]
+tests = [
+  { id = "T-T8.7.1", text = "A canary token used outside — passes when it raises an alert naming the session it was given to" },
+]
+
+[[goal]]
+id = "CP-T8.8"
+title = "Veil and Mantle, both ways"
+criteria = [
+  { id = "AC-T8.8.1", text = "Usable now: Veil's audit history and backups live on Mantle, and Mantle's encryption keys and credentials come from Veil, in a change request that passes the gate" },
+  { id = "AC-T8.8.2", text = "tampering with the audit archive detected is exactly 100%, measured by a test altering, removing and reordering archived objects" },
+  { id = "AC-T8.8.3", text = "difference between a restored point and the source at that point is exactly 0 secrets, measured by a restore drill" },
+]
+tests = [
+  { id = "T-T8.8.1", text = "Mantle unreachable — passes when Veil keeps serving, archives locally within its budget, and catches up after" },
+]
+
+[[goal]]
+id = "CP-T8.9"
+title = "Replication, availability and regions"
+criteria = [
+  { id = "AC-T8.9.1", text = "Usable now: secrets survive the loss of any machine and are read locally on every runner, in a change request that passes the gate" },
+  { id = "AC-T8.9.2", text = "local read p99 on a runner is at most 1 ms, measured by bench veil_get on each runner" },
+  { id = "AC-T8.9.3", text = "secrets lost when any one machine is lost is exactly 0, measured by the three-machine lab" },
+]
+tests = [
+  { id = "T-T8.9.1", text = "A region lost — passes when reads continue in other regions from their replicas" },
+]
+
+[[goal]]
+id = "CP-T8.10"
+title = "Veil on its own, and its bar"
+criteria = [
+  { id = "AC-T8.10.1", text = "Usable now: production kiln runs on Veil with its comparison and threat model published, and Veil installs on its own" },
+  { id = "AC-T8.10.2", text = "Veil's read p99 against OpenBao's on the same hardware is at most 50%, measured by bench veil_compare" },
+  { id = "AC-T8.10.3", text = "crashes found by fuzzing every parser for 24 CPU-hours each is exactly 0, measured by cargo-fuzz's report" },
+  { id = "AC-T8.10.4", text = "The fresh subagent's review finds no open key-handling issue; each it finds is fixed and tested first" },
+]
+tests = [
+  { id = "T-T8.10.1", text = "Fire drills: a node lost, a sealed root unavailable, a partition, a region lost" },
+]

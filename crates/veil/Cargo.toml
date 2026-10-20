@@ -1,0 +1,16 @@
+[package]
+name = "veil"
+description = "Veil: just-in-time secrets for people and their agents"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "veil"
+path = "src/main.rs"
+
+[lints]
+workspace = true
